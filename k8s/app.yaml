@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eventhub
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: eventhub
+  template:
+    metadata:
+      labels:
+        app: eventhub
+    spec:
+      containers:
+      - name: eventhub
+        image: eventhub:v1
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DEBUG
+          valueFrom:
+            configMapKeyRef:
+              name: eventhub-config
+              key: DEBUG
+        - name: DJANGO_ALLOWED_HOSTS
+          valueFrom:
+            configMapKeyRef:
+              name: eventhub-config
+              key: DJANGO_ALLOWED_HOSTS
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: eventhub-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: eventhub-config
+              key: DB_PORT
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: eventhub-config
+              key: DB_NAME
+        - name: DB_USER
+          valueFrom:
+            configMapKeyRef:
+              name: eventhub-config
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: eventhub-secret
+              key: DB_PASSWORD
+        - name: DJANGO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: eventhub-secret
+              key: DJANGO_SECRET_KEY
+        command: ["/bin/sh", "-c"]
+        args:
+        - "sleep 10 && python manage.py migrate && python manage.py loaddata fixtures/users.json fixtures/events.json && python manage.py runserver 0.0.0.0:8000"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eventhub-service
+spec:
+  selector:
+    app: eventhub
+  ports:
+  - port: 80
+    targetPort: 8000
+  type: LoadBalancer
