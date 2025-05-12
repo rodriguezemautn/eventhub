@@ -1,0 +1,16 @@
+[
+  {
+    "model": "app.user",
+    "pk": 1,
+    "fields": {
+      "password": "pbkdf2_sha256$600000$XKyTmknGxkxAHKQzYy2Nuo$HZQNd3/R9vY5MN2IAQTf9nU4IPLOxIE2m9YWPN0Xx2g=",
+      "email": "admin@example.com",
+      "first_name": "Admin",
+      "last_name": "User",
+      "is_active": true,
+      "is_staff": true,
+      "is_superuser": true,
+      "date_joined": "2025-05-12T18:00:00Z"
+    }
+  }
+]

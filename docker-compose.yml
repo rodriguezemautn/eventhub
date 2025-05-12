@@ -1,0 +1,70 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    # Eliminamos el mapeo de puertos directo para permitir escalado
+    expose:
+      - "8000"
+    volumes:
+      - ./:/app
+      - static_volume:/app/static
+    environment:
+      - DEBUG=True
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,web
+      - DB_NAME=eventhudb
+      - DB_USER=eventhub_user
+      - DB_PASSWORD=eventhub_pass
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - db
+    command: sh -c "python manage.py migrate && python manage.py loaddata fixtures/users.json fixtures/events.json && python manage.py runserver 0.0.0.0:8000"
+    restart: always
+    networks:
+      - eventhub_network
+  
+  db:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_DB=eventhudb
+      - POSTGRES_USER=eventhub_user
+      - POSTGRES_PASSWORD=eventhub_pass
+    ports:
+      - "5432:5432"
+    restart: always
+    networks:
+      - eventhub_network
+  
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    networks:
+      - eventhub_network
+  
+  # Agregar un proxy nginx para manejar el balanceo de carga
+  nginx:
+    image: nginx:latest
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/app/static
+    depends_on:
+      - web
+    networks:
+      - eventhub_network
+
+volumes:
+  postgres_data:
+  static_volume:
+
+networks:
+  eventhub_network:
+    driver: bridge
